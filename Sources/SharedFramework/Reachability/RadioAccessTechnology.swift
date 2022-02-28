@@ -1,4 +1,5 @@
 import CoreTelephony
+import UIKit
 
 public let RadioAccessTechnologyStateDidChange = NSNotification.Name("StateDidChange")
 
