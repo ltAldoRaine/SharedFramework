@@ -1,6 +1,6 @@
 import LocalAuthentication
 
-final public class AppBiometry {
+public final class AppBiometry {
     public typealias SuccessComplition = () -> Void
     public typealias ErrorComplition = (_ error: Error?) -> Void
 
@@ -13,21 +13,27 @@ final public class AppBiometry {
     public var isAvailable: Bool {
         var error: NSError?
 
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {return true}
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) { return true }
 
-        guard let laError = error as? LAError else {return false}
+        guard let laError = error as? LAError else { return false }
 
         return laError.code != .biometryNotAvailable
     }
 
-    public var biometryType: LABiometryType {
+    public var biometryType: BiometryType {
         var error: NSError?
 
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            return context.biometryType
+            guard let laError = error as? LAError else { return .none }
+
+            return laError.code != .biometryNotAvailable ? .touchId : .none
         }
 
-        return .none
+        if #available(iOS 11.0, *) {
+            return BiometryType(biometryType: context.biometryType)
+        }
+
+        return .touchId
     }
 
     public func authenticate(successComplition: @escaping SuccessComplition, errorComplition: @escaping ErrorComplition) {
@@ -39,7 +45,7 @@ final public class AppBiometry {
             return
         }
 
-        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reasonString, reply: { (success, evalPolicyError) in
+        context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reasonString, reply: { success, evalPolicyError in
             DispatchQueue.main.async {
                 if success {
                     successComplition()
